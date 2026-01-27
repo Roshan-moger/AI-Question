@@ -287,6 +287,10 @@ Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribos
     }
 });
 
+
+app.get("/", (req, res) => {
+    res.send("API running");
+});
 /* ---------------------------------------------------
    EXPORT (NO app.listen FOR VERCEL)
 --------------------------------------------------- */
