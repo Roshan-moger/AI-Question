@@ -1,9 +1,16 @@
 {
-  "dependencies": {
-    "@huggingface/inference": "^4.13.10",
-    "@openrouter/sdk": "^0.3.15",
-    "cors": "^2.8.5",
-    "express": "^5.2.1",
-    "uuid": "^13.0.0"
-  }
+    "name": "genrate-question-server",
+    "version": "1.0.0",
+    "type": "module",
+    "private": true,
+    "scripts": {
+        "dev": "node index.js"
+    },
+    "dependencies": {
+        "@huggingface/inference": "^4.13.10",
+        "@openrouter/sdk": "^0.3.15",
+        "cors": "^2.8.5",
+        "express": "^5.2.1",
+        "uuid": "^13.0.0"
+    }
 }

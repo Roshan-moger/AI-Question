@@ -1,0 +1,43 @@
+# ===============================
+# Node / NPM
+# ===============================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ===============================
+# Environment files (IMPORTANT)
+# ===============================
+.env
+.env.local
+.env.development
+.env.production
+
+# ===============================
+# Vite / Build output
+# ===============================
+dist/
+dist-ssr/
+.vite/
+
+# ===============================
+# Server build / logs
+# ===============================
+server/dist/
+server/logs/
+*.log
+
+# ===============================
+# OS / Editor files
+# ===============================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ===============================
+# Misc
+# ===============================
+coverage/

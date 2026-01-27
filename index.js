@@ -3,33 +3,19 @@ const cors = require("cors");
 const { OpenRouter } = require("@openrouter/sdk");
 
 const app = express();
-
-/* ---------------------------------------------------
-   CORS (VERY IMPORTANT FOR VERCEL)
---------------------------------------------------- */
-app.use(
-    cors({
-        origin: "*",
-        methods: ["GET", "POST", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "Authorization"],
-    })
-);
-
-// Preflight support
-app.options("*", cors());
-
 app.use(express.json());
+app.use(cors());
 
-/* ---------------------------------------------------
-   OpenRouter Client
---------------------------------------------------- */
+// -------------------------------
+// Initialize OpenRouter client
+// -------------------------------
 const openRouter = new OpenRouter({
     apiKey: "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",
 });
 
-/* ---------------------------------------------------
-   Model Map
---------------------------------------------------- */
+// -------------------------------
+// Model Map
+// -------------------------------
 const modelMap = {
     gpt35: "openai/gpt-3.5-turbo",
     mistralFree: "mistralai/devstral-2512:free",
@@ -40,9 +26,9 @@ const modelMap = {
     zAiFree: "z-ai/glm-4.5-air:free",
 };
 
-/* ---------------------------------------------------
-   Helper
---------------------------------------------------- */
+// -------------------------------
+// Helper: Clean option text
+// -------------------------------
 function cleanOption(text) {
     if (!text) return "";
     return text
@@ -51,13 +37,11 @@ function cleanOption(text) {
         .trim();
 }
 
-/* ---------------------------------------------------
-   API: Generate Questions
---------------------------------------------------- */
+// -------------------------------
+// API: Generate Questions
+// -------------------------------
 app.post("/api/questions", async(req, res) => {
     try {
-        res.setHeader("Access-Control-Allow-Origin", "*");
-
         const {
             topic,
             productguid,
@@ -69,27 +53,25 @@ app.post("/api/questions", async(req, res) => {
             difficulty,
         } = req.body;
 
-        if (!topic) {
-            return res.status(400).json({ error: "Topic is required" });
-        }
-
         const modelToUse = modelMap[model] || modelMap.gpt35;
 
-        /* ---------------- Defaults ---------------- */
+        // -------------------------------
+        // Defaults
+        // -------------------------------
         const finalProductGuid =
-            productguid;
-
+            productguid || "0d5ae089-28f7-43b3-b26f-e7e2d80c14a9";
         const finalOrgGuid =
-            organizationguid;
-
+            organizationguid || "852e5a64-8125-4f89-b40d-acd358dce6ea";
         const finalRepoGuid =
-            repositoryguid;
+            repositoryguid || "c983a899-48e7-48db-825a-e3f736437473";
 
         const finalCount = count || 5;
         const finalType = type || "MCQ";
         const finalDifficulty = difficulty || "Medium";
 
-        /* ---------------- Prompt ---------------- */
+        // -------------------------------
+        // PROMPT WITH DIFFICULTY
+        // -------------------------------
         let prompt = "";
 
         if (finalType === "TF") {
@@ -147,7 +129,9 @@ Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribos
 `;
         }
 
-        /* ---------------- OpenRouter Call ---------------- */
+        // -------------------------------
+        // Call OpenRouter
+        // -------------------------------
         const completion = await openRouter.chat.send({
             model: modelToUse,
             messages: [{ role: "user", content: prompt }],
@@ -156,7 +140,11 @@ Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribos
 
         const text = completion.choices[0].message.content;
 
-        /* ---------------- Parse ---------------- */
+        console.log("\nRAW AI OUTPUT:\n", text);
+
+        // -------------------------------
+        // Parse Output
+        // -------------------------------
         const lines = text
             .split("\n")
             .map((l) => l.trim())
@@ -252,11 +240,15 @@ Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribos
                 question: {
                     repositoryguid: finalRepoGuid,
                     questionguid: "00000000-0000-0000-0000-000000000000",
-                    questioncode: `NSE-Item-${finalType}-${index + 101}`,
+                    questioncode: `NSE-Item-${finalType}-${index + 1 + 100}`,
                     questiontext: `<p>${questionText}</p>`,
                     questiontype: finalType,
                     questionlevel: finalDifficulty,
-                    questionlevelid: finalDifficulty === "Easy" ? 1 : finalDifficulty === "Medium" ? 2 : 3,
+                    questionlevelid: finalDifficulty === "Easy" ?
+                        1 : finalDifficulty === "Medium" ?
+                        2 : 3,
+                    answeringtime: 0,
+                    classification: "None",
                     language: "English",
                     metadata: [],
                     feedback: { isquestionfeedback: false, ischoicefeedback: false },
@@ -287,11 +279,7 @@ Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribos
     }
 });
 
-
-app.get("/", (req, res) => {
-    res.send("API running");
-});
-/* ---------------------------------------------------
-   EXPORT (NO app.listen FOR VERCEL)
---------------------------------------------------- */
-module.exports = app;
+// -------------------------------
+app.listen(5000, () =>
+    console.log("✅ OpenRouter AI server running on port 5000"),
+);
