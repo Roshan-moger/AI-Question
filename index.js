@@ -10,7 +10,7 @@ app.use(cors());
 // Initialize OpenRouter client
 // -------------------------------
 const openRouter = new OpenRouter({
-    apiKey: "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",
+    apiKey: process.env.OPENROUTER_API_KEY,
 });
 
 // -------------------------------
@@ -59,15 +59,15 @@ app.post("/api/questions", async(req, res) => {
         // Defaults
         // -------------------------------
         const finalProductGuid =
-            productguid || "0d5ae089-28f7-43b3-b26f-e7e2d80c14a9";
+            productguid
         const finalOrgGuid =
-            organizationguid || "852e5a64-8125-4f89-b40d-acd358dce6ea";
+            organizationguid
         const finalRepoGuid =
-            repositoryguid || "c983a899-48e7-48db-825a-e3f736437473";
+            repositoryguid
 
-        const finalCount = count || 5;
-        const finalType = type || "MCQ";
-        const finalDifficulty = difficulty || "Medium";
+        const finalCount = count
+        const finalType = type
+        const finalDifficulty = difficulty
 
         // -------------------------------
         // PROMPT WITH DIFFICULTY
