@@ -1,6 +1,6 @@
-const express = require("express");
-const cors = require("cors");
-const { OpenRouter } = require("@openrouter/sdk");
+import express from "express";
+import cors from "cors";
+import { OpenRouter } from "@openrouter/sdk";
 
 const app = express();
 app.use(express.json());
@@ -10,7 +10,7 @@ app.use(cors());
 // Initialize OpenRouter client
 // -------------------------------
 const openRouter = new OpenRouter({
-    apiKey: "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",
+    apiKey: "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",
 });
 
 // -------------------------------
