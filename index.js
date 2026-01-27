@@ -10,7 +10,7 @@ app.use(cors());
 // Initialize OpenRouter client
 // -------------------------------
 const openRouter = new OpenRouter({
-    apiKey: "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",
+    apiKey: "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",
 });
 
 // -------------------------------
@@ -53,7 +53,7 @@ app.post("/api/questions", async(req, res) => {
             difficulty,
         } = req.body;
 
-        const modelToUse = modelMap[model] || modelMap.gpt35;
+        const modelToUse = model || modelMap.gpt35;
 
         // -------------------------------
         // Defaults
