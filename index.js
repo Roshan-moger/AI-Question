@@ -160,18 +160,14 @@ STRICT RULES:
 
 FORMAT:
 Question |
-Left1, Left2, Left3, Left4 |
-Right1, Right2, Right3, Right4 |
-CorrectPairs
-
+Left1, Left2, Left3, Left4 |Right1, Right2, Right3, Right4 |CorrectPairs
 CorrectPairs format:
 1-1,2-2,3-3,4-4
 
 Example:
-Match the countries with their capitals |
-India, France, Japan, Germany |
-New Delhi, Paris, Tokyo, Berlin |
-1-1,2-2,3-3,4-4
+Match the countries with their capitals |India, France, Japan, Germany |New Delhi, Paris, Tokyo, Berlin |1-1,2-2,3-3,4-4
+
+
 `;
         } else if (finalType === "Sequencing") {
             prompt = `
@@ -421,7 +417,6 @@ Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribos
                     .trim();
 
                 const parts = cleaned.split("|");
-
 
 
                 const [q, left, right, corr] = parts;
@@ -693,7 +688,6 @@ Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribos
                         questioncode: `Item-${finalType}-${index + 1 + 100}`,
                         questiontext: `<p>${questionText}</p>`,
                         questiontype: finalType,
-                        questionlevel: finalDifficulty,
                         questionlevelid: getDifficultyId(finalDifficulty),
                         answeringtime: 0,
                         classification: "None",
