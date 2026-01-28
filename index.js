@@ -149,12 +149,7 @@ Question | Option1 | Option2 | Option3 | Option4 | CorrectOptionNumber
 Example:
 @^^{Blank 1}^^@ is the capital of France | London | Berlin | Madrid | Paris | 4
 `;
-        }
-
-        /* ============================
-           ✅ NEW TYPES ADDED BELOW
-           ============================ */
-        else if (finalType === "MTF") {
+        } else if (finalType === "MTF" || finalType === "MatchingSequence" || finalType === "MatchingConnectThePoints") {
             prompt = `
 Generate exactly ${finalCount} ${finalDifficulty} difficulty Match The Following questions on "${topic}".
 
@@ -176,52 +171,6 @@ Example:
 Match the countries with their capitals |
 India, France, Japan, Germany |
 New Delhi, Paris, Tokyo, Berlin |
-1-1,2-2,3-3,4-4
-`;
-        } else if (finalType === "MatchingSequence") {
-            prompt = `
-Generate exactly ${finalCount} ${finalDifficulty} difficulty Matching Sequence questions on "${topic}".
-
-STRICT RULES:
-- Do NOT number questions
-- Do NOT add explanations
-- Output plain text only
-
-FORMAT:
-Question |
-Item1, Item2, Item3, Item4 |
-CorrectOrder
-
-CorrectOrder format:
-1,2,3,4
-
-Example:
-Arrange the steps of the water cycle |
-Evaporation, Condensation, Precipitation, Collection |
-1,2,3,4
-`;
-        } else if (finalType === "MatchingConnectThePoints") {
-            prompt = `
-Generate exactly ${finalCount} ${finalDifficulty} difficulty Connect The Points questions on "${topic}".
-
-STRICT RULES:
-- Do NOT number questions
-- Do NOT add explanations
-- Output plain text only
-
-FORMAT:
-Question |
-LeftPoints |
-RightPoints |
-CorrectConnections
-
-CorrectConnections format:
-1-1,2-2,3-3,4-4
-
-Example:
-Connect the scientist with their discovery |
-Newton, Einstein, Darwin, Edison |
-Gravity, Relativity, Evolution, Electricity |
 1-1,2-2,3-3,4-4
 `;
         } else if (finalType === "Sequencing") {
@@ -433,10 +382,21 @@ Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribos
             /* ============================
                ✅ MTF
                ============================ */
-            else if (finalType === "MTF") {
+            else if (finalType === "MTF" || finalType === "MatchingSequence" || finalType === "MatchingConnectThePoints") {
+
+                const cleaned = text
+                    .replace(/\n/g, " ")
+                    .replace(/\s*\|\s*/g, "|")
+                    .trim();
+
+                const parts = cleaned.split("|");
+
+
+
                 const [q, left, right, corr] = parts;
 
-                questionText = q;
+                questionText = q.trim();
+
                 leftItems = left.split(",").map((t, i) => ({
                     blankid: i + 1,
                     blanktext: t.trim(),
@@ -447,16 +407,34 @@ Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribos
                     optiontext: t.trim(),
                 }));
 
-                correct = corr.split(",").map(p => {
-                    const [l, r] = p.split("-");
-                    return { blankid: Number(l), optionid: Number(r) };
+                correct = corr.split(",").map(pair => {
+                    const [l, r] = pair.split("-");
+                    return {
+                        blankid: Number(l),
+                        optionid: Number(r),
+                    };
                 });
             }
 
+
+
             /* ============================
-               ✅ Matching Sequence
+               ✅ SEQUENCING
                ============================ */
-            else if (finalType === "MatchingSequence") {
+            else if (finalType === "Sequencing") {
+
+                const cleaned = text
+                    .replace(/\n/g, " ")
+                    .replace(/\s*\|\s*/g, "|")
+                    .trim();
+
+                const parts = cleaned.split("|");
+
+                // Example:
+                // 0 → Question |
+                // 1 → Option1 | Option2 | Option3 | Option4 |
+                // 2 → 2,1,3,4
+
                 const [q, items, order] = parts;
 
                 questionText = q;
@@ -468,47 +446,6 @@ Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribos
                 sequence = order.split(",").map(n => Number(n.trim()));
             }
 
-            /* ============================
-               ✅ Matching Connect Points
-               ============================ */
-            else if (finalType === "MatchingConnectThePoints") {
-                const [q, left, right, corr] = parts;
-
-                questionText = q;
-
-                leftItems = left.split(",").map((t, i) => ({
-                    blankid: i + 1,
-                    blanktext: t.trim(),
-                }));
-
-                rightItems = right.split(",").map((t, i) => ({
-                    optionid: i + 1,
-                    optiontext: t.trim(),
-                }));
-
-                correct = corr.split(",").map(p => {
-                    const [l, r] = p.split("-");
-                    return { blankid: Number(l), optionid: Number(r) };
-                });
-            }
-
-            /* ============================
-               ✅ SEQUENCING
-               ============================ */
-            else if (finalType === "Sequencing") {
-                const [q, o1, o2, o3, o4, corr] = parts;
-
-                questionText = q;
-
-                choices = [
-                    { optionid: 1, optiontext: o1 },
-                    { optionid: 2, optiontext: o2 },
-                    { optionid: 3, optiontext: o3 },
-                    { optionid: 4, optiontext: o4 },
-                ];
-
-                sequence = corr.split(",").map(n => Number(n.trim()));
-            }
 
             /* =====================================================
                ✅ RETURN STRUCTURES
@@ -550,9 +487,7 @@ Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribos
                         passageid: null,
                     },
                 };
-            }
-
-            if (finalType === "Sequencing") {
+            } else if (finalType === "Sequencing") {
                 return {
                     productguid: finalProductGuid,
                     organizationguid: finalOrgGuid,
@@ -586,38 +521,7 @@ Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribos
                         passageid: null,
                     },
                 };
-            } else {
-                const [q, o1, o2, o3, o4, corr] = parts;
-                questionText = q;
-                correct = [Number(corr)];
-                choices = [{
-                        choiceid: 1,
-                        choiceguid: "00000000-0000-0000-0000-000000000000",
-                        choiceorder: 1,
-                        choicetext: cleanOption(o1),
-                    },
-                    {
-                        choiceid: 2,
-                        choiceguid: "00000000-0000-0000-0000-000000000000",
-                        choiceorder: 2,
-                        choicetext: cleanOption(o2),
-                    },
-                    {
-                        choiceid: 3,
-                        choiceguid: "00000000-0000-0000-0000-000000000000",
-                        choiceorder: 3,
-                        choicetext: cleanOption(o3),
-                    },
-                    {
-                        choiceid: 4,
-                        choiceguid: "00000000-0000-0000-0000-000000000000",
-                        choiceorder: 4,
-                        choicetext: cleanOption(o4),
-                    },
-                ];
-            }
-
-            if (finalType === "FIBDnD") {
+            } else if (finalType === "FIBDnD") {
                 return {
                     productguid: finalProductGuid,
                     organizationguid: finalOrgGuid,
@@ -665,8 +569,7 @@ Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribos
                         passageid: null,
                     },
                 };
-            }
-            if (finalType === "FIBDD") {
+            } else if (finalType === "FIBDD") {
                 return {
                     productguid: finalProductGuid,
                     organizationguid: finalOrgGuid,
@@ -712,8 +615,7 @@ Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribos
                         passageid: null,
                     },
                 };
-            }
-            if (finalType === "FIBT") {
+            } else if (finalType === "FIBT") {
                 return {
                     productguid: finalProductGuid,
                     organizationguid: finalOrgGuid,
@@ -749,42 +651,44 @@ Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribos
                         passageid: null,
                     },
                 };
-            }
-            return {
-                productguid: finalProductGuid,
-                organizationguid: finalOrgGuid,
-                assetguids: [],
-                question: {
-                    repositoryguid: finalRepoGuid,
-                    questionguid: "00000000-0000-0000-0000-000000000000",
-                    questioncode: `Item-${finalType}-${index + 1 + 100}`,
-                    questiontext: `<p>${questionText}</p>`,
-                    questiontype: finalType,
-                    questionlevel: finalDifficulty,
-                    questionlevelid: getDifficultyId(finalDifficulty),
-                    answeringtime: 0,
-                    classification: "None",
-                    language: "English",
-                    metadata: [],
-                    feedback: { isquestionfeedback: false, ischoicefeedback: false },
-                    data: {
-                        choices,
-                        preferences: {
-                            ishorizontalalignment: true,
-                            shuffle: finalType !== "TF",
-                            minchoices: finalType === "MRQ" ? 2 : undefined,
-                            maxchoices: finalType === "MRQ" ? 3 : undefined,
+            } else {
+                return {
+                    productguid: finalProductGuid,
+                    organizationguid: finalOrgGuid,
+                    assetguids: [],
+                    question: {
+                        repositoryguid: finalRepoGuid,
+                        questionguid: "00000000-0000-0000-0000-000000000000",
+                        questioncode: `Item-${finalType}-${index + 1 + 100}`,
+                        questiontext: `<p>${questionText}</p>`,
+                        questiontype: finalType,
+                        questionlevel: finalDifficulty,
+                        questionlevelid: getDifficultyId(finalDifficulty),
+                        answeringtime: 0,
+                        classification: "None",
+                        language: "English",
+                        metadata: [],
+                        feedback: { isquestionfeedback: false, ischoicefeedback: false },
+                        data: {
+                            choices,
+                            preferences: {
+                                ishorizontalalignment: true,
+                                shuffle: finalType !== "TF",
+                                minchoices: finalType === "MRQ" ? 2 : undefined,
+                                maxchoices: finalType === "MRQ" ? 3 : undefined,
+                            },
                         },
+                        answers: choices.map((c) => ({
+                            choiceid: c.choiceid,
+                            score: correct.includes(c.choiceid) ? 2 : 0,
+                            iscorrect: correct.includes(c.choiceid),
+                        })),
+                        hints: { hint1: "", hint2: "", hint3: "" },
+                        passageid: null,
                     },
-                    answers: choices.map((c) => ({
-                        choiceid: c.choiceid,
-                        score: correct.includes(c.choiceid) ? 2 : 0,
-                        iscorrect: correct.includes(c.choiceid),
-                    })),
-                    hints: { hint1: "", hint2: "", hint3: "" },
-                    passageid: null,
-                },
-            };
+                };
+            }
+
         });
 
         res.json({ questions });
