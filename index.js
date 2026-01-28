@@ -37,6 +37,13 @@ function cleanOption(text) {
         .trim();
 }
 
+function getDifficultyId(level) {
+    if (level === "Easy") return 1;
+    if (level === "Medium") return 2;
+    if (level === "Hard") return 3;
+    return 1;
+}
+
 // -------------------------------
 // API: Generate Questions
 // -------------------------------
@@ -142,6 +149,120 @@ Question | Option1 | Option2 | Option3 | Option4 | CorrectOptionNumber
 Example:
 @^^{Blank 1}^^@ is the capital of France | London | Berlin | Madrid | Paris | 4
 `;
+        }
+
+        /* ============================
+           ✅ NEW TYPES ADDED BELOW
+           ============================ */
+        else if (finalType === "MTF") {
+            prompt = `
+Generate exactly ${finalCount} ${finalDifficulty} difficulty Match The Following questions on "${topic}".
+
+STRICT RULES:
+- Do NOT number questions
+- Do NOT add explanations
+- Output plain text only
+
+FORMAT:
+Question |
+Left1, Left2, Left3, Left4 |
+Right1, Right2, Right3, Right4 |
+CorrectPairs
+
+CorrectPairs format:
+1-1,2-2,3-3,4-4
+
+Example:
+Match the countries with their capitals |
+India, France, Japan, Germany |
+New Delhi, Paris, Tokyo, Berlin |
+1-1,2-2,3-3,4-4
+`;
+        } else if (finalType === "MatchingSequence") {
+            prompt = `
+Generate exactly ${finalCount} ${finalDifficulty} difficulty Matching Sequence questions on "${topic}".
+
+STRICT RULES:
+- Do NOT number questions
+- Do NOT add explanations
+- Output plain text only
+
+FORMAT:
+Question |
+Item1, Item2, Item3, Item4 |
+CorrectOrder
+
+CorrectOrder format:
+1,2,3,4
+
+Example:
+Arrange the steps of the water cycle |
+Evaporation, Condensation, Precipitation, Collection |
+1,2,3,4
+`;
+        } else if (finalType === "MatchingConnectThePoints") {
+            prompt = `
+Generate exactly ${finalCount} ${finalDifficulty} difficulty Connect The Points questions on "${topic}".
+
+STRICT RULES:
+- Do NOT number questions
+- Do NOT add explanations
+- Output plain text only
+
+FORMAT:
+Question |
+LeftPoints |
+RightPoints |
+CorrectConnections
+
+CorrectConnections format:
+1-1,2-2,3-3,4-4
+
+Example:
+Connect the scientist with their discovery |
+Newton, Einstein, Darwin, Edison |
+Gravity, Relativity, Evolution, Electricity |
+1-1,2-2,3-3,4-4
+`;
+        } else if (finalType === "Sequencing") {
+            prompt = `
+Generate exactly ${finalCount} ${finalDifficulty} difficulty Sequencing questions on "${topic}".
+
+STRICT RULES:
+- Do NOT number questions
+- Do NOT add explanations
+- Output plain text only
+
+FORMAT:
+Question |
+Option1 | Option2 | Option3 | Option4 |
+CorrectOrder
+
+CorrectOrder format:
+1,2,3,4
+
+Example:
+Arrange the steps of software development |
+Design | Coding | Testing | Deployment |
+1,2,3,4
+`;
+        } else if (finalType === "FIBT") {
+            prompt = `
+Generate exactly ${finalCount} ${finalDifficulty} difficulty Fill in the blank (Text input) questions on "${topic}".
+
+STRICT RULES:
+- Use exactly one blank
+- Use @^^{Blank 1}^^@
+- Answer must be text or number only
+- No explanations
+- No numbering
+
+FORMAT:
+Question | Answer
+
+Example:
+5 × 6 = @^^{Blank 1}^^@ | 30
+`;
         } else {
             prompt = `
 Generate exactly ${finalCount} ${finalDifficulty} difficulty multiple-choice questions on "${topic}".
@@ -162,6 +283,7 @@ Example:
 Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribosome | 2
 `;
         }
+
 
         // -------------------------------
         // Call OpenRouter
@@ -189,7 +311,9 @@ Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribos
 
             let questionText, correct;
             let choices = [];
-
+            let leftItems = [];
+            let rightItems = [];
+            let sequence = [];
             if (finalType === "TF") {
                 const [q, opt1, opt2, corr] = parts;
                 questionText = q;
@@ -294,6 +418,174 @@ Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribos
                         optiontext: cleanOption(o4),
                     },
                 ];
+            } else if (finalType === "FIBT") {
+                // -------------------------------
+                // TEXT INPUT BLANK
+                // -------------------------------
+                const [q, answer] = parts;
+
+                questionText = q;
+                correct = [answer];
+
+            }
+
+
+            /* ============================
+               ✅ MTF
+               ============================ */
+            else if (finalType === "MTF") {
+                const [q, left, right, corr] = parts;
+
+                questionText = q;
+                leftItems = left.split(",").map((t, i) => ({
+                    blankid: i + 1,
+                    blanktext: t.trim(),
+                }));
+
+                rightItems = right.split(",").map((t, i) => ({
+                    optionid: i + 1,
+                    optiontext: t.trim(),
+                }));
+
+                correct = corr.split(",").map(p => {
+                    const [l, r] = p.split("-");
+                    return { blankid: Number(l), optionid: Number(r) };
+                });
+            }
+
+            /* ============================
+               ✅ Matching Sequence
+               ============================ */
+            else if (finalType === "MatchingSequence") {
+                const [q, items, order] = parts;
+
+                questionText = q;
+                choices = items.split(",").map((t, i) => ({
+                    optionid: i + 1,
+                    optiontext: t.trim(),
+                }));
+
+                sequence = order.split(",").map(n => Number(n.trim()));
+            }
+
+            /* ============================
+               ✅ Matching Connect Points
+               ============================ */
+            else if (finalType === "MatchingConnectThePoints") {
+                const [q, left, right, corr] = parts;
+
+                questionText = q;
+
+                leftItems = left.split(",").map((t, i) => ({
+                    blankid: i + 1,
+                    blanktext: t.trim(),
+                }));
+
+                rightItems = right.split(",").map((t, i) => ({
+                    optionid: i + 1,
+                    optiontext: t.trim(),
+                }));
+
+                correct = corr.split(",").map(p => {
+                    const [l, r] = p.split("-");
+                    return { blankid: Number(l), optionid: Number(r) };
+                });
+            }
+
+            /* ============================
+               ✅ SEQUENCING
+               ============================ */
+            else if (finalType === "Sequencing") {
+                const [q, o1, o2, o3, o4, corr] = parts;
+
+                questionText = q;
+
+                choices = [
+                    { optionid: 1, optiontext: o1 },
+                    { optionid: 2, optiontext: o2 },
+                    { optionid: 3, optiontext: o3 },
+                    { optionid: 4, optiontext: o4 },
+                ];
+
+                sequence = corr.split(",").map(n => Number(n.trim()));
+            }
+
+            /* =====================================================
+               ✅ RETURN STRUCTURES
+               ===================================================== */
+
+            if (finalType === "MTF" || finalType === "MatchingConnectThePoints" || finalType === "MatchingSequence") {
+                return {
+                    productguid: finalProductGuid,
+                    organizationguid: finalOrgGuid,
+                    assetguids: [],
+                    question: {
+                        questionguid: "00000000-0000-0000-0000-000000000000",
+                        repositoryguid: finalRepoGuid,
+                        questioncode: `${finalType}-${index + 1}`,
+                        questiontext: `<p>${questionText}</p>`,
+                        questiontype: finalType,
+                        questionlevelid: getDifficultyId(finalDifficulty),
+                        language: "English",
+
+                        data: {
+                            blanks: leftItems,
+                            options: rightItems,
+                            preferences: {
+                                shuffle: true,
+                                ishorizontalalignment: true,
+                            },
+                        },
+
+                        answers: correct.map(c => ({
+                            blankid: c.blankid,
+                            options: [{
+                                optionid: c.optionid,
+                                score: 2,
+                                iscorrect: true,
+                            }],
+                        })),
+
+                        hints: { hint1: "", hint2: "", hint3: "" },
+                        passageid: null,
+                    },
+                };
+            }
+
+            if (finalType === "Sequencing") {
+                return {
+                    productguid: finalProductGuid,
+                    organizationguid: finalOrgGuid,
+                    assetguids: [],
+                    question: {
+                        questionguid: "00000000-0000-0000-0000-000000000000",
+                        repositoryguid: finalRepoGuid,
+                        questioncode: `${finalType}-${index + 1}`,
+                        questiontext: `<p>${questionText}</p>`,
+                        questiontype: finalType,
+                        questionlevelid: getDifficultyId(finalDifficulty),
+                        language: "English",
+
+                        data: {
+                            options: choices,
+                            preferences: {
+                                shuffle: true,
+                                ishorizontalalignment: false,
+                            },
+                        },
+
+                        answers: [{
+                            options: sequence.map((optId, i) => ({
+                                optionid: optId,
+                                orderid: i + 1,
+                                score: 2,
+                            })),
+                        }],
+
+                        hints: { hint1: "", hint2: "", hint3: "" },
+                        passageid: null,
+                    },
+                };
             } else {
                 const [q, o1, o2, o3, o4, corr] = parts;
                 questionText = q;
@@ -332,11 +624,11 @@ Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribos
                     assetguids: [],
                     question: {
                         questionguid: "00000000-0000-0000-0000-000000000000",
-                        questioncode: `ES-FIBDnD-${index + 1}`,
+                        questioncode: `FIBDnD-${index + 1}`,
                         questiontext: `<p>${questionText}</p>`,
                         questiontype: "FIBDnD",
                         repositoryguid: finalRepoGuid,
-                        questionlevelid: finalDifficulty === "Easy" ? 1 : finalDifficulty === "Medium" ? 2 : 3,
+                        questionlevelid: getDifficultyId(finalDifficulty),
                         maxscore: 0,
                         answeringtime: 0,
                         classification: "None",
@@ -382,12 +674,10 @@ Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribos
                     question: {
                         questionguid: "00000000-0000-0000-0000-000000000000",
                         repositoryguid: finalRepoGuid,
-                        questioncode: "",
+                        questioncode: `FIBDD-${index + 1}`,
                         questiontext: `<p>${questionText}</p>`,
                         questiontype: "FIBDD",
-                        questionlevelid: finalDifficulty === "Easy" ?
-                            1 : finalDifficulty === "Medium" ?
-                            2 : 3,
+                        questionlevelid: getDifficultyId(finalDifficulty),
                         answeringtime: 0,
                         classification: "None",
                         language: "English",
@@ -423,7 +713,43 @@ Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribos
                     },
                 };
             }
+            if (finalType === "FIBT") {
+                return {
+                    productguid: finalProductGuid,
+                    organizationguid: finalOrgGuid,
+                    assetguids: [],
+                    question: {
+                        questionguid: "00000000-0000-0000-0000-000000000000",
+                        repositoryguid: finalRepoGuid,
+                        questioncode: `FIBT-${index + 1}`,
+                        questiontext: `<p>${questionText}</p>`,
+                        questiontype: "FIBT",
+                        questionlevelid: getDifficultyId(finalDifficulty),
+                        language: "English",
+                        metadata: [],
+                        feedback: { isquestionfeedback: false, ischoicefeedback: false },
 
+                        data: {
+                            blanks: [{
+                                blankid: 1,
+                                blankguid: "00000000-0000-0000-0000-000000000000",
+                            }],
+                        },
+
+                        answers: [{
+                            blankid: 1,
+                            answers: correct.map((ans) => ({
+                                answertext: ans,
+                                score: 2,
+                                iscorrect: true,
+                            })),
+                        }],
+
+                        hints: { hint1: "", hint2: "", hint3: "" },
+                        passageid: null,
+                    },
+                };
+            }
             return {
                 productguid: finalProductGuid,
                 organizationguid: finalOrgGuid,
@@ -431,13 +757,11 @@ Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribos
                 question: {
                     repositoryguid: finalRepoGuid,
                     questionguid: "00000000-0000-0000-0000-000000000000",
-                    questioncode: `NSE-Item-${finalType}-${index + 1 + 100}`,
+                    questioncode: `Item-${finalType}-${index + 1 + 100}`,
                     questiontext: `<p>${questionText}</p>`,
                     questiontype: finalType,
                     questionlevel: finalDifficulty,
-                    questionlevelid: finalDifficulty === "Easy" ?
-                        1 : finalDifficulty === "Medium" ?
-                        2 : 3,
+                    questionlevelid: getDifficultyId(finalDifficulty),
                     answeringtime: 0,
                     classification: "None",
                     language: "English",
