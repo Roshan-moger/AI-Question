@@ -108,6 +108,40 @@ CorrectOptionNumbers MUST be comma-separated values (e.g., 1,3 or 2,4)
 Example:
 Which of the following are programming languages? | Python | HTML | Java | CSS | 1,3
 `;
+        } else if (finalType === "FIBDnD") {
+            prompt = `
+Generate exactly ${finalCount} ${finalDifficulty} Fill In The Blanks Drag and Drop questions on "${topic}".
+
+STRICT RULES:
+- Use exactly one blank
+- Represent blank as @^^{Blank 1}^^@
+- Do NOT number questions
+- Do NOT add explanations
+- Output plain text only
+
+FORMAT:
+Question | Option1 | Option2 | Option3 | Option4 | CorrectOptionNumber
+
+Example:
+Water freezes at @^^{Blank 1}^^@ degrees | 0 | 10 | 50 | 100 | 1
+`;
+        } else if (finalType === "FIBDD") {
+            prompt = `
+Generate exactly ${finalCount} ${finalDifficulty} Fill In The Blanks Dropdown questions on "${topic}".
+
+STRICT RULES:
+- Use exactly one blank
+- Represent blank as @^^{Blank 1}^^@
+- Do NOT number questions
+- Do NOT add explanations
+- Output plain text only
+
+FORMAT:
+Question | Option1 | Option2 | Option3 | Option4 | CorrectOptionNumber
+
+Example:
+@^^{Blank 1}^^@ is the capital of France | London | Berlin | Madrid | Paris | 4
+`;
         } else {
             prompt = `
 Generate exactly ${finalCount} ${finalDifficulty} difficulty multiple-choice questions on "${topic}".
@@ -202,6 +236,64 @@ Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribos
                         choicetext: cleanOption(o4),
                     },
                 ];
+            } else if (finalType === "FIBDnD") {
+                const [q, o1, o2, o3, o4, corr] = parts;
+
+                questionText = q;
+                correct = [Number(corr)];
+
+                choices = [{
+                        choiceid: 1,
+                        choiceguid: "00000000-0000-0000-0000-000000000000",
+                        choiceorder: 1,
+                        choicetext: cleanOption(o1),
+                    },
+                    {
+                        choiceid: 2,
+                        choiceguid: "00000000-0000-0000-0000-000000000000",
+                        choiceorder: 2,
+                        choicetext: cleanOption(o2),
+                    },
+                    {
+                        choiceid: 3,
+                        choiceguid: "00000000-0000-0000-0000-000000000000",
+                        choiceorder: 3,
+                        choicetext: cleanOption(o3),
+                    },
+                    {
+                        choiceid: 4,
+                        choiceguid: "00000000-0000-0000-0000-000000000000",
+                        choiceorder: 4,
+                        choicetext: cleanOption(o4),
+                    },
+                ];
+            } else if (finalType === "FIBDD") {
+                const [q, o1, o2, o3, o4, corr] = parts;
+
+                questionText = q;
+                correct = [Number(corr)];
+
+                choices = [{
+                        optionid: 1,
+                        optionguid: "00000000-0000-0000-0000-000000000000",
+                        optiontext: cleanOption(o1),
+                    },
+                    {
+                        optionid: 2,
+                        optionguid: "00000000-0000-0000-0000-000000000000",
+                        optiontext: cleanOption(o2),
+                    },
+                    {
+                        optionid: 3,
+                        optionguid: "00000000-0000-0000-0000-000000000000",
+                        optiontext: cleanOption(o3),
+                    },
+                    {
+                        optionid: 4,
+                        optionguid: "00000000-0000-0000-0000-000000000000",
+                        optiontext: cleanOption(o4),
+                    },
+                ];
             } else {
                 const [q, o1, o2, o3, o4, corr] = parts;
                 questionText = q;
@@ -231,6 +323,105 @@ Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribos
                         choicetext: cleanOption(o4),
                     },
                 ];
+            }
+
+            if (finalType === "FIBDnD") {
+                return {
+                    productguid: finalProductGuid,
+                    organizationguid: finalOrgGuid,
+                    assetguids: [],
+                    question: {
+                        questionguid: "00000000-0000-0000-0000-000000000000",
+                        questioncode: `ES-FIBDnD-${index + 1}`,
+                        questiontext: `<p>${questionText}</p>`,
+                        questiontype: "FIBDnD",
+                        repositoryguid: finalRepoGuid,
+                        questionlevelid: finalDifficulty === "Easy" ? 1 : finalDifficulty === "Medium" ? 2 : 3,
+                        maxscore: 0,
+                        answeringtime: 0,
+                        classification: "None",
+                        metadata: [],
+                        feedback: {
+                            isquestionfeedback: false,
+                            ischoicefeedback: false,
+                        },
+                        language: "English",
+
+                        data: {
+                            blanks: [{
+                                blankid: 1,
+                                blankguid: "00000000-0000-0000-0000-000000000000",
+                            }, ],
+                            options: choices,
+                            preferences: {
+                                shuffle: true,
+                                ishorizontalalignment: true,
+                            },
+                        },
+
+                        answers: [{
+                            blankid: 1,
+                            options: choices.map((c) => ({
+                                optionid: c.choiceid,
+                                score: correct.includes(c.choiceid) ? 2 : 0,
+                                iscorrect: correct.includes(c.choiceid),
+                                negativescore: 0,
+                            })),
+                        }, ],
+
+                        hints: { hint1: "", hint2: "", hint3: "" },
+                        passageid: null,
+                    },
+                };
+            }
+            if (finalType === "FIBDD") {
+                return {
+                    productguid: finalProductGuid,
+                    organizationguid: finalOrgGuid,
+                    assetguids: [],
+                    question: {
+                        questionguid: "00000000-0000-0000-0000-000000000000",
+                        repositoryguid: finalRepoGuid,
+                        questioncode: "",
+                        questiontext: `<p>${questionText}</p>`,
+                        questiontype: "FIBDD",
+                        questionlevelid: finalDifficulty === "Easy" ?
+                            1 : finalDifficulty === "Medium" ?
+                            2 : 3,
+                        answeringtime: 0,
+                        classification: "None",
+                        language: "English",
+                        metadata: [],
+                        feedback: {
+                            isquestionfeedback: false,
+                            ischoicefeedback: false,
+                        },
+
+                        data: {
+                            blanks: [{
+                                blankid: 1,
+                                blankguid: "00000000-0000-0000-0000-000000000000",
+                                options: choices,
+                            }, ],
+                            preferences: {
+                                ishorizontalalignment: true,
+                                shuffle: true,
+                            },
+                        },
+
+                        answers: [{
+                            blankid: 1,
+                            options: choices.map((o) => ({
+                                optionid: o.optionid,
+                                score: correct.includes(o.optionid) ? 2 : 0,
+                                iscorrect: correct.includes(o.optionid),
+                            })),
+                        }, ],
+
+                        hints: { hint1: "", hint2: "", hint3: "" },
+                        passageid: null,
+                    },
+                };
             }
 
             return {
