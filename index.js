@@ -409,15 +409,21 @@ Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribos
             /* ============================
                ✅ MTF
                ============================ */
-            else if (finalType === "MTF" || finalType === "MatchingSequence" || finalType === "MatchingConnectThePoints") {
-
-                const cleaned = text
+            else if (
+                finalType === "MTF" ||
+                finalType === "MatchingSequence" ||
+                finalType === "MatchingConnectThePoints"
+            ) {
+                const cleaned = line
                     .replace(/\n/g, " ")
                     .replace(/\s*\|\s*/g, "|")
                     .trim();
 
                 const parts = cleaned.split("|");
 
+                if (parts.length < 4) {
+                    throw new Error("Invalid MTF format from AI");
+                }
 
                 const [q, left, right, corr] = parts;
 
@@ -435,12 +441,14 @@ Which organelle produces ATP? | Nucleus | Mitochondria | Golgi apparatus | Ribos
 
                 correct = corr.split(",").map(pair => {
                     const [l, r] = pair.split("-");
+
                     return {
                         blankid: Number(l),
                         optionid: Number(r),
                     };
                 });
             }
+
 
 
 
