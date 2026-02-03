@@ -1,10 +1,18 @@
 import express from "express";
 import cors from "cors";
 import { OpenRouter } from "@openrouter/sdk";
+import multer from "multer";
 
 const app = express();
 app.use(express.json());
 app.use(cors());
+
+
+const upload = multer({
+    limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB
+    },
+});
 
 // -------------------------------
 // Initialize OpenRouter client
@@ -50,7 +58,6 @@ function getDifficultyId(level) {
 app.post("/api/questions", async(req, res) => {
     try {
         const {
-            topic,
             productguid,
             organizationguid,
             repositoryguid,
@@ -61,6 +68,13 @@ app.post("/api/questions", async(req, res) => {
         } = req.body;
 
         const modelToUse = model || modelMap.gpt35;
+        if (!req.file) {
+            return res.status(400).json({
+                error: "PDF or DOCX file is required",
+            });
+        }
+
+        const documentText = await extractDocumentText(req.file);
 
         // -------------------------------
         // Defaults
@@ -83,13 +97,24 @@ app.post("/api/questions", async(req, res) => {
 
         if (finalType === "TF") {
             prompt = `
-Generate exactly ${finalCount} ${finalDifficulty} difficulty true/false questions on "${topic}".
+You are given COURSE CONTENT below.
 
 STRICT RULES:
+- Generate questions ONLY from this content
+- Do NOT use outside knowledge
+- Do NOT assume or guess
+- If info is missing, skip that idea
 - Only use True and False
 - No explanations
 - No numbering
 - No extra text
+
+COURSE CONTENT:
+"""
+${documentText}
+"""
+
+Generate exactly ${count} ${difficulty} ${type} questions.
 
 FORMAT ONLY:
 Question | True | False | CorrectOptionNumber
@@ -101,12 +126,22 @@ CorrectOptionNumber must be 1 or 2
 Generate exactly ${finalCount} ${finalDifficulty} difficulty multiple-response questions on "${topic}".
 
 VERY IMPORTANT RULES:
+- Generate questions ONLY from this content
+- Do NOT use outside knowledge
+- Do NOT assume or guess
+- If info is missing, skip that idea
 - Do NOT use A), B), C), D)
 - Do NOT write Answer or explanation
 - Do NOT number questions
 - Do NOT repeat questions
 - Output plain text only
 
+COURSE CONTENT:
+"""
+${documentText}
+"""
+
+Generate exactly ${count} ${difficulty} ${type} questions.
 STRICT FORMAT:
 Question | Option1 | Option2 | Option3 | Option4 | CorrectOptionNumbers
 
@@ -117,14 +152,25 @@ Which of the following are programming languages? | Python | HTML | Java | CSS |
 `;
         } else if (finalType === "FIBDnD") {
             prompt = `
-Generate exactly ${finalCount} ${finalDifficulty} Fill In The Blanks Drag and Drop questions on "${topic}".
+You are given COURSE CONTENT below.
 
 STRICT RULES:
+- Generate questions ONLY from this content
+- Do NOT use outside knowledge
+- Do NOT assume or guess
+- If info is missing, skip that idea
 - Use exactly one blank
 - Represent blank as @^^{Blank 1}^^@
 - Do NOT number questions
 - Do NOT add explanations
 - Output plain text only
+
+COURSE CONTENT:
+"""
+${documentText}
+"""
+
+Generate exactly ${count} ${difficulty} ${type} questions.
 
 FORMAT:
 Question | Option1 | Option2 | Option3 | Option4 | CorrectOptionNumber
@@ -134,14 +180,25 @@ Water freezes at @^^{Blank 1}^^@ degrees | 0 | 10 | 50 | 100 | 1
 `;
         } else if (finalType === "FIBDD") {
             prompt = `
-Generate exactly ${finalCount} ${finalDifficulty} Fill In The Blanks Dropdown questions on "${topic}".
+You are given COURSE CONTENT below.
 
 STRICT RULES:
+- Generate questions ONLY from this content
+- Do NOT use outside knowledge
+- Do NOT assume or guess
+- If info is missing, skip that idea
 - Use exactly one blank
 - Represent blank as @^^{Blank 1}^^@
 - Do NOT number questions
 - Do NOT add explanations
 - Output plain text only
+
+COURSE CONTENT:
+"""
+${documentText}
+"""
+
+Generate exactly ${count} ${difficulty} ${type} questions.
 
 FORMAT:
 Question | Option1 | Option2 | Option3 | Option4 | CorrectOptionNumber
@@ -151,12 +208,23 @@ Example:
 `;
         } else if (finalType === "MTF" || finalType === "MatchingSequence" || finalType === "MatchingConnectThePoints") {
             prompt = `
-Generate exactly ${finalCount} ${finalDifficulty} difficulty Match The Following questions on "${topic}".
+You are given COURSE CONTENT below.
 
 STRICT RULES:
+- Generate questions ONLY from this content
+- Do NOT use outside knowledge
+- Do NOT assume or guess
+- If info is missing, skip that idea
 - Do NOT number questions
 - Do NOT add explanations
 - Output plain text only
+
+COURSE CONTENT:
+"""
+${documentText}
+"""
+
+Generate exactly ${count} ${difficulty} ${type} questions.
 
 FORMAT:
 Question |
@@ -171,12 +239,23 @@ Match the countries with their capitals |India, France, Japan, Germany |New Delh
 `;
         } else if (finalType === "Sequencing") {
             prompt = `
-Generate exactly ${finalCount} ${finalDifficulty} difficulty Sequencing questions on "${topic}".
+You are given COURSE CONTENT below.
 
 STRICT RULES:
+- Generate questions ONLY from this content
+- Do NOT use outside knowledge
+- Do NOT assume or guess
+- If info is missing, skip that idea
 - Do NOT number questions
 - Do NOT add explanations
 - Output plain text only
+
+COURSE CONTENT:
+"""
+${documentText}
+"""
+
+Generate exactly ${count} ${difficulty} ${type} questions.
 
 FORMAT:
 Question |
@@ -193,14 +272,25 @@ Design | Coding | Testing | Deployment |
 `;
         } else if (finalType === "FIBT") {
             prompt = `
-Generate exactly ${finalCount} ${finalDifficulty} difficulty Fill in the blank (Text input) questions on "${topic}".
+You are given COURSE CONTENT below.
 
 STRICT RULES:
+- Generate questions ONLY from this content
+- Do NOT use outside knowledge
+- Do NOT assume or guess
+- If info is missing, skip that idea
 - Use exactly one blank
 - Use @^^{Blank 1}^^@
 - Answer must be text or number only
 - No explanations
 - No numbering
+
+COURSE CONTENT:
+"""
+${documentText}
+"""
+
+Generate exactly ${count} ${difficulty} ${type} questions.
 
 FORMAT:
 Question | Answer
@@ -213,12 +303,22 @@ Example:
 Generate exactly ${finalCount} ${finalDifficulty} difficulty multiple-choice questions on "${topic}".
 
 VERY IMPORTANT RULES:
+- Generate questions ONLY from this content
+- Do NOT use outside knowledge
+- Do NOT assume or guess
+- If info is missing, skip that idea
 - Do NOT use A), B), C), D)
 - Do NOT write Answer or explanation
 - Do NOT number questions
 - Do NOT repeat questions
 - Output plain text only
 
+COURSE CONTENT:
+"""
+${documentText}
+"""
+
+Generate exactly ${count} ${difficulty} ${type} questions.
 STRICT FORMAT:
 Question | Option1 | Option2 | Option3 | Option4 | CorrectOptionNumber
 
